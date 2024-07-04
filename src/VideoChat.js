@@ -7,49 +7,53 @@ const VideoChat = () => {
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const [stream, setStream] = useState(null);
-  const cors = require("cors");
+  const initializePeerConnection = () => {
+    
+    
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
 
+    pc.onicecandidate = event => {
+      if (event.candidate) {
+        socketRef.current.emit('candidate', event.candidate);
+      }
+    };
+
+    pc.ontrack = event => {
+      remoteVideoRef.current.srcObject = event.streams[0];
+    };
+
+    return pc;
+  };
+
+  const startVideo = async () => {
+    try {
+      const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideoRef.current.srcObject = localStream;
+      setStream(localStream);
+
+      peerConnectionRef.current = initializePeerConnection();
+
+      localStream.getTracks().forEach(track => {
+        peerConnectionRef.current.addTrack(track, localStream);
+      });
+
+      socketRef.current.emit('join');
+
+    } catch (error) {
+      console.error('Error accessing media devices.', error);
+    }
+  };
+  
   useEffect(() => {
     socketRef.current = io('http://localhost:5000',{
         withCredentials: true
          }); 
 
-    const initializePeerConnection = () => {
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
+   
 
-      pc.onicecandidate = event => {
-        if (event.candidate) {
-          socketRef.current.emit('candidate', event.candidate);
-        }
-      };
-
-      pc.ontrack = event => {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      };
-
-      return pc;
-    };
-
-    const startVideo = async () => {
-      try {
-        const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        localVideoRef.current.srcObject = localStream;
-        setStream(localStream);
-
-        peerConnectionRef.current = initializePeerConnection();
-
-        localStream.getTracks().forEach(track => {
-          peerConnectionRef.current.addTrack(track, localStream);
-        });
-
-        socketRef.current.emit('join');
-
-      } catch (error) {
-        console.error('Error accessing media devices.', error);
-      }
-    };
+    
 
     startVideo();
 
@@ -86,6 +90,11 @@ const VideoChat = () => {
       socketRef.current.disconnect();
     };
   }, [stream]);
+
+  useEffect(() => { 
+
+
+  })
 
   return (
     <div>
