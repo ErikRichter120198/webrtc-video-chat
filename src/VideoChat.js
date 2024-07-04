@@ -89,7 +89,7 @@ const VideoChat = () => {
       }
       socketRef.current.disconnect();
     };
-  }, [stream]);
+  }, []);
 
   useEffect(() => { 
 
